@@ -8,8 +8,6 @@ import {
     UserProfile
 } from '../types/auth.types';
 import { ApiErrorResponse } from '../types/api.types';
-import { getUserToken } from './redis.service';
-import { Context } from 'telegraf';
 
 export const requestEmailOtp = async (email: string) => {
     const payload: EmailOtpRequest = { email };

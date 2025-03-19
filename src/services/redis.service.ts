@@ -1,10 +1,8 @@
 import Redis from "ioredis";
 import { environment } from "../config/environment";
 
-// In-memory fallback for development
 const inMemoryStorage = new Map<string, string>();
 
-// Flag to track if Redis is available
 let isRedisAvailable = true;
 let redis: Redis | null = null;
 
@@ -13,11 +11,10 @@ try {
 		host: environment.redis.host,
 		port: environment.redis.port,
 		password: environment.redis.password,
-		connectTimeout: 5000, // 5 second timeout
-		lazyConnect: true, // Don't connect immediately
+		connectTimeout: 5000,
+		lazyConnect: true,
 	});
 
-	// Attempt to connect
 	redis.connect().catch((err) => {
 		console.warn(
 			"Redis connection failed, falling back to in-memory storage:",
@@ -26,7 +23,6 @@ try {
 		isRedisAvailable = false;
 	});
 
-	// Handle Redis errors without crashing
 	redis.on("error", (err) => {
 		if (isRedisAvailable) {
 			console.warn(
@@ -41,7 +37,6 @@ try {
 	isRedisAvailable = false;
 }
 
-// User token management functions with fallback
 export const setUserToken = async (
 	telegramUserId: number,
 	token: string
@@ -51,20 +46,20 @@ export const setUserToken = async (
 	if (isRedisAvailable && redis) {
 		try {
 			await redis.setex(key, environment.redis.tokenExpiry, token);
+			console.log("token Successfully stored to redis!");
 		} catch (error) {
 			console.warn("Redis setex failed, using in-memory storage");
 			isRedisAvailable = false;
 			inMemoryStorage.set(key, token);
 
-			// Set expiry for in-memory storage
 			setTimeout(() => {
 				inMemoryStorage.delete(key);
 			}, environment.redis.tokenExpiry * 1000);
 		}
 	} else {
+		console.log("Using in memory storage!");
 		inMemoryStorage.set(key, token);
 
-		// Set expiry for in-memory storage
 		setTimeout(() => {
 			inMemoryStorage.delete(key);
 		}, environment.redis.tokenExpiry * 1000);
@@ -75,7 +70,7 @@ export const getUserToken = async (
 	telegramUserId: number
 ): Promise<string | null> => {
 	const key = `${environment.redis.tokenPrefix}${telegramUserId}`;
-
+	console.log("Redis user token key(redis.service.ts 74): ", key);
 	if (isRedisAvailable && redis) {
 		try {
 			return await redis.get(key);
@@ -85,6 +80,7 @@ export const getUserToken = async (
 			return inMemoryStorage.get(key) || null;
 		}
 	} else {
+		console.log("Using in-memory storage(83)");
 		return inMemoryStorage.get(key) || null;
 	}
 };
@@ -93,7 +89,7 @@ export const removeUserToken = async (
 	telegramUserId: number
 ): Promise<void> => {
 	const key = `${environment.redis.tokenPrefix}${telegramUserId}`;
-
+	console.log("Removing token from redis...(92)")
 	if (isRedisAvailable && redis) {
 		try {
 			await redis.del(key);
