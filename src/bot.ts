@@ -1,15 +1,35 @@
-import { Telegraf } from "telegraf";
-import dotenv from "dotenv";
-import { helpCommand, startCommand } from "./commands/start";
+import { Telegraf, Context } from "telegraf";
+import { environment } from "./config/environment";
+import * as authCommands from "./commands/auth.commands";
+import { authMiddleware } from "./middleware/auth.middleware";
 
-dotenv.config();
+// Create the bot instance
+const bot = new Telegraf<Context>(environment.telegram.botToken);
 
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string);
+// Setup middleware
+bot.use(authMiddleware());
 
-bot.start(startCommand);
-bot.help(helpCommand);
-bot.launch().then(() => console.log("CopperX BOT is running..."));
+// Setup commands
+bot.command("start", authCommands.handleStart);
+bot.command("login", authCommands.handleLogin);
+bot.command("verify", authCommands.handleVerify);
+bot.command("profile", authCommands.handleProfile);
+bot.command("logout", authCommands.handleLogout);
 
+// Error handling
+bot.catch((err: any, ctx: Context) => {
+	console.error("Bot error:", err);
+	ctx.reply("An error occurred. Please try again later.");
+});
 
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+// Export functions to control the bot
+export const launch = (): void => {
+	bot.launch();
+	console.log("Bot is running...");
+};
+
+export const stop = (): void => {
+	bot.stop();
+};
+
+export default { launch, stop };
