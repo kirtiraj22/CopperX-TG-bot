@@ -11,7 +11,9 @@ export const environment = {
             emailOtpRequest: '/api/auth/email-otp/request',
             emailOtpAuthenticate: '/api/auth/email-otp/authenticate',
             userProfile: '/api/auth/me',
-            kycStatus: '/api/kycs'
+            kycStatus: '/api/kycs',
+            getWallets: '/api/wallets',
+            getWalletBalances: '/api/wallets/balances'
         }
     },
     redis: {
