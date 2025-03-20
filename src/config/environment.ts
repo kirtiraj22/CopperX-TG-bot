@@ -10,7 +10,8 @@ export const environment = {
         endpoints: {
             emailOtpRequest: '/api/auth/email-otp/request',
             emailOtpAuthenticate: '/api/auth/email-otp/authenticate',
-            userProfile: '/api/auth/me'
+            userProfile: '/api/auth/me',
+            kycStatus: '/api/kycs'
         }
     },
     redis: {

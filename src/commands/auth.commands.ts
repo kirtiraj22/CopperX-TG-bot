@@ -17,7 +17,8 @@ export const handleStart = async (ctx: Context): Promise<void> => {
 			"/login <email> - Start login process\n" +
 			"/verify <otp> - Verify OTP\n" +
 			"/profile - View your profile\n" +
-			"/logout - Logout from the bot"
+			"/logout - Logout from the bot\n" + 
+			"/check_kyc - Check KYC/KYB status"
 	);
 };
 
@@ -112,7 +113,6 @@ export const handleVerify = async (ctx: Context): Promise<void> => {
 export const handleProfile = async (ctx: Context): Promise<void> => {
 	try {
         const token = await getUserToken(ctx.from!.id);
-        
         if(!token){
             await ctx.reply("You are not logged in. Please use /login <email>.")
             return;
