@@ -17,6 +17,7 @@ bot.command("profile", authCommands.handleProfile);
 bot.command("logout", authCommands.handleLogout);
 bot.command("check_kyc", kycCommands.handleCheckKyc);
 bot.command("wallet", walletCommands.handleGetWallet);
+bot.command("balances", walletCommands.handleGetWalletBalances)
 
 bot.catch((err: any, ctx: Context) => {
 	console.error("Bot error:", err);

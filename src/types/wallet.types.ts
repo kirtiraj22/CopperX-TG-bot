@@ -8,3 +8,17 @@ export interface Wallet{
     walletAddress: string;
     isDefault: boolean | null;
 }
+
+export interface WalletBalance{
+    walletId: string;
+    isDefault: boolean | null;
+    network: string;
+    balances: TokenBalance[]
+}
+
+export interface TokenBalance{
+    symbol: string;
+    balance: string;
+    decimals: number;
+    address: string;
+}

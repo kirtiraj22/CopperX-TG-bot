@@ -37,3 +37,40 @@ export const handleGetWallet = async (ctx: Context): Promise<void> => {
 	}
 };
 
+
+export const handleGetWalletBalances = async (ctx: Context): Promise<void> => {
+    try{
+        await ctx.reply("Fetching your wallet balances...");
+
+        const balances = await walletService.getWalletBalances();
+
+        if(isApiError(balances)){
+            await ctx.reply(formatApiError(balances))
+            return;
+        }
+
+        if(balances.length === 0){
+            await ctx.reply("You have no wallet balances.")
+            return;
+        }
+
+        let message = "💰 **Your Wallet Balances:**\n\n";
+        balances.forEach((wallet) => {
+            message += `🔹 **Network:** ${wallet.network}\n`;
+            wallet.balances.forEach((token) => {
+                message += `• ${token.symbol}: ${formatBalance(token.balance, token.decimals)}\n`;
+            });
+            message += "\n";
+        });
+
+        await ctx.replyWithMarkdownV2(message);
+    }catch(error){
+        console.error("Error fetching wallet balances(45): ", error);
+        await ctx.reply("Failed to fetch wallet balances. Please try again")
+    }
+}
+
+const formatBalance = (balance: string, decimals: number): string => {
+    const formatted = (parseFloat(balance) / 10 ** decimals).toFixed(6);
+    return formatted;
+}

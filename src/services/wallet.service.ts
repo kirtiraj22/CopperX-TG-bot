@@ -23,3 +23,24 @@ export const getWallets = async ()=> {
         throw error;
     }
 }
+
+export const getWalletBalances = async () => {
+    console.log(`Fetching wallet balances from ${environment.api.endpoints.getWalletBalances}`)
+
+    try{
+        const response = await api.get<WalletBalance[] | ApiErrorResponse>(
+            environment.api.endpoints.getWalletBalances
+        );
+
+        console.log("Fetched wallet balances: ", response.data);
+
+        return response.data;
+    }catch(error: any){
+        console.error("API Error: ", {
+            message: error.message,
+            code: error.code,
+            response: error.response?.data
+        })
+        throw error;
+    }
+}
