@@ -89,7 +89,7 @@ export const removeUserToken = async (
 	telegramUserId: number
 ): Promise<void> => {
 	const key = `${environment.redis.tokenPrefix}${telegramUserId}`;
-	console.log("Removing token from redis...(92)")
+	console.log("Removing token from redis...(92)");
 	if (isRedisAvailable && redis) {
 		try {
 			await redis.del(key);
@@ -103,7 +103,7 @@ export const removeUserToken = async (
 	}
 };
 
-export interface UserSession{
+export interface UserSession {
 	state: string;
 	data?: any;
 }
@@ -113,29 +113,61 @@ export const setUserSession = async (
 	state: string,
 	data: any = {}
 ): Promise<void> => {
-	const key = `${environment.redis.sessionPrefix}${telegramUserId}`
-	const sessionData = JSON.stringify({ state, data});
+	const key = `${environment.redis.sessionPrefix}${telegramUserId}`;
+	const sessionData = JSON.stringify({ state, data });
 
-	if(isRedisAvailable && redis){
-		try{
-			await redis.setex(key, environment.redis.sessionExpiry, sessionData);
+	if (isRedisAvailable && redis) {
+		try {
+			await redis.setex(
+				key,
+				environment.redis.sessionExpiry,
+				sessionData
+			);
 
-			console.log(`Session for user ${telegramUserId} set to ${state}`)
-		}catch(error){
-			console.warn("Redis setex failed, using in-memory storage for session")
+			console.log(`Session for user ${telegramUserId} set to ${state}`);
+		} catch (error) {
+			console.warn(
+				"Redis setex failed, using in-memory storage for session"
+			);
 			isRedisAvailable = false;
 			inMemoryStorage.set(key, sessionData);
 
 			setTimeout(() => {
 				inMemoryStorage.delete(key);
-			}, environment.redis.sessionExpiry * 1000)
+			}, environment.redis.sessionExpiry * 1000);
 		}
-	}else{
-		console.log("Using in-memory storage for session!")
-		inMemoryStorage.set(key, sessionData)
-		
+	} else {
+		console.log("Using in-memory storage for session!");
+		inMemoryStorage.set(key, sessionData);
+
 		setTimeout(() => {
 			inMemoryStorage.delete(key);
 		}, environment.redis.sessionExpiry);
 	}
-}
+};
+
+export const getUserSession = async (
+	telegramUserId: number
+): Promise<UserSession> => {
+	const key = `${environment.redis.sessionPrefix}${telegramUserId}`;
+
+	if (isRedisAvailable && redis) {
+		try {
+			const sessionData = await redis.get(key);
+			return sessionData
+				? JSON.parse(sessionData)
+				: {
+						state: "IDLE",
+				  };
+		} catch (error) {
+			console.warn(
+				"Redis get failed, using in-memory storage for session"
+			);
+			isRedisAvailable = false;
+			return JSON.parse(inMemoryStorage.get(key) || `{"state": "IDLE"}`);
+		}
+	} else {
+		console.log("Using in-memory storage for session retrieval");
+		return JSON.parse(inMemoryStorage.get(key) || `{"state": "IDLE"}`);
+	}
+};
