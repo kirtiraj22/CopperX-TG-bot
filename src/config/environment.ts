@@ -13,7 +13,9 @@ export const environment = {
             userProfile: '/api/auth/me',
             kycStatus: '/api/kycs',
             getWallets: '/api/wallets',
-            getWalletBalances: '/api/wallets/balances'
+            getWalletBalances: '/api/wallets/balances',
+            getDefaultWallet: '/api/wallets/default',
+            setDefaultWallet: '/api/wallets/default'
         }
     },
     redis: {
