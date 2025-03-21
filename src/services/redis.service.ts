@@ -171,3 +171,23 @@ export const getUserSession = async (
 		return JSON.parse(inMemoryStorage.get(key) || `{"state": "IDLE"}`);
 	}
 };
+
+
+export const clearUserSession = async (telegramUserId: string) => {
+	const key = `${environment.redis.sessionPrefix}${telegramUserId}`
+	
+	if(isRedisAvailable && redis){
+		try{
+			await redis.del(key);
+			console.log(`Session for user ${telegramUserId} cleared`)
+		}catch(error){
+			console.warn(
+				"Redis get failed, using in-memory storage for session"
+			);
+			isRedisAvailable = false;
+			inMemoryStorage.delete(key);
+		}
+	}else{
+		inMemoryStorage.delete(key);
+	}
+}
