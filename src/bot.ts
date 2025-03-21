@@ -5,9 +5,11 @@ import { authMiddleware } from "./middleware/auth.middleware";
 import * as authCommands from "./commands/auth.commands";
 import * as kycCommands from "./commands/kyc.commands";
 import * as walletCommands from "./commands/wallet.commands"
+import { CustomContext, sessionMiddleware } from "./middleware/session.middleware";
 
-const bot = new Telegraf<Context>(environment.telegram.botToken);
+const bot = new Telegraf<CustomContext>(environment.telegram.botToken);
 
+bot.use(sessionMiddleware())
 bot.use(authMiddleware());
 
 bot.command("start", authCommands.handleStart);
