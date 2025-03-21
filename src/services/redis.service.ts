@@ -102,3 +102,40 @@ export const removeUserToken = async (
 		inMemoryStorage.delete(key);
 	}
 };
+
+export interface UserSession{
+	state: string;
+	data?: any;
+}
+
+export const setUserSession = async (
+	telegramUserId: number,
+	state: string,
+	data: any = {}
+): Promise<void> => {
+	const key = `${environment.redis.sessionPrefix}${telegramUserId}`
+	const sessionData = JSON.stringify({ state, data});
+
+	if(isRedisAvailable && redis){
+		try{
+			await redis.setex(key, environment.redis.sessionExpiry, sessionData);
+
+			console.log(`Session for user ${telegramUserId} set to ${state}`)
+		}catch(error){
+			console.warn("Redis setex failed, using in-memory storage for session")
+			isRedisAvailable = false;
+			inMemoryStorage.set(key, sessionData);
+
+			setTimeout(() => {
+				inMemoryStorage.delete(key);
+			}, environment.redis.sessionExpiry * 1000)
+		}
+	}else{
+		console.log("Using in-memory storage for session!")
+		inMemoryStorage.set(key, sessionData)
+		
+		setTimeout(() => {
+			inMemoryStorage.delete(key);
+		}, environment.redis.sessionExpiry);
+	}
+}

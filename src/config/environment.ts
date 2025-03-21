@@ -23,6 +23,8 @@ export const environment = {
         port: parseInt(process.env.REDIS_PORT || '6379'),
         password: process.env.REDIS_PASSWORD,
         tokenExpiry: 60 * 60 * 24 * 7, // 7 days
-        tokenPrefix: 'telegram_user_token:'
+        tokenPrefix: 'telegram_user_token:',
+        sessionExpiry: 60 * 60 * 24, // 1 day
+        sessionPrefix: 'telegram_user_session:'
     }
 }; 
