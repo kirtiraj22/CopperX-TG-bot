@@ -1,4 +1,3 @@
-import { Context } from "telegraf";
 import * as authService from "../services/auth.service";
 import {
 	getUserToken,
@@ -9,8 +8,10 @@ import { setAuthToken } from "../services/api.service";
 import { isApiError, formatApiError } from "../utils/error.utils";
 import { isValidEmail, isValidOtp } from "../utils/validation.utils";
 import { UserProfile } from "../types/auth.types";
+import { CustomContext } from "../middleware/session.middleware";
 
-export const handleStart = async (ctx: Context): Promise<void> => {
+export const handleStart = async (ctx: CustomContext): Promise<void> => {
+	console.log("User session: ", ctx.session)
 	await ctx.reply(
 		"Welcome to CopperX Telegram Bot!\n\n" +
 			"Available commands:\n" +
@@ -18,11 +19,13 @@ export const handleStart = async (ctx: Context): Promise<void> => {
 			"/verify <otp> - Verify OTP\n" +
 			"/profile - View your profile\n" +
 			"/logout - Logout from the bot\n" + 
-			"/check_kyc - Check KYC/KYB status"
-	);
+			"/check_kyc - Check KYC/KYB status\n"+
+			"/wallet - View all wallets\n"+ 
+			"/balances - check wallet balance\n"
+		);
 };
 
-export const handleLogin = async (ctx: Context): Promise<void> => {
+export const handleLogin = async (ctx: CustomContext): Promise<void> => {
 	const message =
 		ctx.message && "text" in ctx.message ? ctx.message.text : "";
 	const args = message.split(" ");
@@ -61,7 +64,7 @@ export const handleLogin = async (ctx: Context): Promise<void> => {
 	}
 };
 
-export const handleVerify = async (ctx: Context): Promise<void> => {
+export const handleVerify = async (ctx: CustomContext): Promise<void> => {
 	const message =
 		ctx.message && "text" in ctx.message ? ctx.message.text : "";
 	const args = message.split(" ");
@@ -110,7 +113,7 @@ export const handleVerify = async (ctx: Context): Promise<void> => {
 	}
 };
 
-export const handleProfile = async (ctx: Context): Promise<void> => {
+export const handleProfile = async (ctx: CustomContext): Promise<void> => {
 	try {
         const token = await getUserToken(ctx.from!.id);
         if(!token){
@@ -145,7 +148,7 @@ export const handleProfile = async (ctx: Context): Promise<void> => {
 	}
 };
 
-export const handleLogout = async (ctx: Context): Promise<void> => {
+export const handleLogout = async (ctx: CustomContext): Promise<void> => {
 	console.log("Logging out...");
     const token = await getUserToken(ctx.from!.id);
     console.log("Token before loggin out:(151)", token)

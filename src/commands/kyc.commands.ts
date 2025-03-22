@@ -1,8 +1,8 @@
-import { Context } from "telegraf";
+import { CustomContext } from "../middleware/session.middleware";
 import { checkKycStatus } from "../services/kyc.service";
 import { getUserToken } from "../services/redis.service";
 
-export const handleCheckKyc = async (ctx: Context) => {
+export const handleCheckKyc = async (ctx: CustomContext) => {
 	const token = await getUserToken(ctx.from!.id);
 	if (!token) {
 		await ctx.reply("You are not logged in. Please use /login <email>.");

@@ -1,11 +1,12 @@
-import { Context, Markup } from "telegraf";
+import { Markup } from "telegraf";
 import * as walletService from "../services/wallet.service";
 import { formatApiError, isApiError } from "../utils/error.utils";
 import { Wallet, WalletBalance } from "../types/wallet.types";
 import { getUserToken } from "../services/redis.service";
 import { formatBalance } from "../utils/wallet.utils";
+import { CustomContext } from "../middleware/session.middleware";
 
-export const handleGetWallet = async (ctx: Context): Promise<void> => {
+export const handleGetWallet = async (ctx: CustomContext): Promise<void> => {
 	try {
 		await ctx.reply("Fetching your wallets...");
 
@@ -38,7 +39,7 @@ export const handleGetWallet = async (ctx: Context): Promise<void> => {
 	}
 };
 
-export const handleGetWalletBalances = async (ctx: Context): Promise<void> => {
+export const handleGetWalletBalances = async (ctx: CustomContext): Promise<void> => {
 	try {
 		await ctx.reply("Fetching your wallet balances...");
 		const token = await getUserToken(ctx.from!.id);
@@ -78,7 +79,7 @@ export const handleGetWalletBalances = async (ctx: Context): Promise<void> => {
 	}
 };
 
-export const handleDefaultWallet = async (ctx: Context) => {
+export const handleDefaultWallet = async (ctx: CustomContext) => {
 	const token = await getUserToken(ctx.from!.id);
 	if (!token) {
 		await ctx.reply("❌ Authentication required. Please log in again.");
@@ -110,7 +111,7 @@ export const handleDefaultWallet = async (ctx: Context) => {
 	}
 };
 
-export const handleChangeDefaultWallet = async (ctx: Context) => {
+export const handleChangeDefaultWallet = async (ctx: CustomContext) => {
 	const token = await getUserToken(ctx.from!.id);
 	if (!token) {
 		await ctx.reply("❌ Authentication required. Please log in again.");

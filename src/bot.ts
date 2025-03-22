@@ -21,7 +21,7 @@ bot.command("check_kyc", kycCommands.handleCheckKyc);
 bot.command("wallet", walletCommands.handleGetWallet);
 bot.command("balances", walletCommands.handleGetWalletBalances)
 
-bot.catch((err: any, ctx: Context) => {
+bot.catch((err: any, ctx: CustomContext) => {
 	console.error("Bot error:", err);
 	ctx.reply("An error occurred. Please try again later.");
 });
