@@ -2,7 +2,7 @@ import { Context, Middleware } from "telegraf";
 import { getUserSession } from "../services/redis.service";
 
 export interface sessionData {
-    state: string;
+    state: string | null;
     data?: any;
 }
 
