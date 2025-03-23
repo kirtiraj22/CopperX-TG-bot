@@ -16,7 +16,7 @@ export const environment = {
             getWalletBalances: '/api/wallets/balances',
             getDefaultWallet: '/api/wallets/default',
             setDefaultWallet: '/api/wallets/default',
-            handleTransactionHistory: '/api/transactions'
+            handleTransactionHistory: '/api/transfers'
         }
     },
     redis: {
