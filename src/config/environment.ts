@@ -16,7 +16,12 @@ export const environment = {
             getWalletBalances: '/api/wallets/balances',
             getDefaultWallet: '/api/wallets/default',
             setDefaultWallet: '/api/wallets/default',
-            handleTransactionHistory: '/api/transfers'
+            handleTransactionHistory: '/api/transfers',
+            emailTransfer: '/api/transfers/send',
+            walletTransfer: '/api/transfers/wallet-withdraw',
+            bankWithdrawal: '/api/transfers/offramp',
+            bulkTransfer: '/api/transfers/send-batch',
+            pusherAuth: '/api/notifications/auth'
         }
     },
     redis: {
@@ -27,5 +32,9 @@ export const environment = {
         tokenPrefix: 'telegram_user_token:',
         sessionExpiry: 60 * 60 * 24, // 1 day
         sessionPrefix: 'telegram_user_session:'
+    },
+    pusher: {
+        key: 'e089376087cac1a62785',
+        cluster: 'ap1'
     }
 }; 
