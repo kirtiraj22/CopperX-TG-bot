@@ -10,6 +10,7 @@ import { isValidEmail, isValidOtp } from "../utils/validation.utils";
 import { UserProfile } from "../types/auth.types";
 import { CustomContext } from "../middleware/session.middleware";
 import { Markup } from "telegraf";
+import * as notificationService from "../services/notification.service";
 
 export const handleStart = async (ctx: CustomContext): Promise<void> => {
 	console.log("User session: ", ctx.session);
@@ -22,6 +23,13 @@ export const handleStart = async (ctx: CustomContext): Promise<void> => {
 			[Markup.button.callback("✅ Check KYC", "check_kyc")],
 			[Markup.button.callback("💳 Wallets", "view_wallets")],
 			[Markup.button.callback("💰 Balances", "check_balance")],
+			[Markup.button.callback("💸 Send Funds", "start_transfer")],
+			[
+				Markup.button.callback(
+					"🏦 Withdraw to Bank",
+					"start_bank_withdrawal"
+				),
+			],
 			[Markup.button.callback("🔐 Logout", "logout")],
 		])
 	);
@@ -29,18 +37,24 @@ export const handleStart = async (ctx: CustomContext): Promise<void> => {
 
 export const handleLoginStart = async (ctx: CustomContext): Promise<void> => {
 	ctx.session.state = "awaiting_email";
-	await ctx.reply("Please enter your email to login:");
+	await ctx.reply("Please enter your email to login:", {
+		reply_markup: { force_reply: true },
+	});
 };
 
 export const handleEmailInput = async (ctx: CustomContext): Promise<void> => {
 	if (ctx.session.state !== "awaiting_email") return;
-	// const email = ctx.message?.text?.trim();
+
 	const message = ctx.message as any;
 	const email = message?.text?.trim();
+
 	if (!email || !isValidEmail(email)) {
-		await ctx.reply("Invalid email. Please enter a valid email:");
+		await ctx.reply("Invalid email. Please enter a valid email:", {
+			reply_markup: { force_reply: true },
+		});
 		return;
 	}
+
 	ctx.session.state = null;
 	await processLogin(ctx, email);
 };
@@ -50,96 +64,63 @@ const processLogin = async (
 	email: string
 ): Promise<void> => {
 	try {
+		await ctx.reply(`Sending OTP to ${email}...`);
+
 		const response = await authService.requestEmailOtp(email);
 		const data = response.data;
+
 		if (isApiError(data)) {
 			await ctx.reply(formatApiError(data));
 			return;
 		}
+
 		await setUserToken(
 			ctx.from!.id,
 			JSON.stringify({ email, sid: data.sid })
 		);
+
+		ctx.session.state = "awaiting_otp";
 		await ctx.reply(
-			"OTP sent to your email. Please enter it to verify:",
-			Markup.inlineKeyboard([
-				[Markup.button.callback("📝 Enter OTP", "start_verify")],
-			])
+			"✅ OTP sent to your email. Please enter it to verify:",
+			{
+				reply_markup: { force_reply: true },
+			}
 		);
 	} catch (error) {
 		await ctx.reply("Failed to send OTP. Try again later.");
 	}
 };
 
-export const handleLogin = async (ctx: CustomContext): Promise<void> => {
-	const message =
-		ctx.message && "text" in ctx.message ? ctx.message.text : "";
-	const args = message.split(" ");
+export const handleOtpInput = async (ctx: CustomContext): Promise<void> => {
+	if (ctx.session.state !== "awaiting_otp") return;
 
-	if (args.length !== 2) {
-		await ctx.reply("Please use the format: /login <email>");
-		return;
-	}
+	const message = ctx.message as any;
+	const otp = message?.text?.trim();
 
-	const email = args[1];
-	if (!isValidEmail(email)) {
-		await ctx.reply("Please enter a valid email address.");
-		return;
-	}
-
-	try {
-		const response = await authService.requestEmailOtp(email);
-		const data = response.data;
-		console.log("Email otp response(43): ", data);
-
-		if (isApiError(data)) {
-			await ctx.reply(formatApiError(data));
-			return;
-		}
-
-		await setUserToken(
-			ctx.from!.id,
-			JSON.stringify({ email, sid: data.sid })
-		);
-		await ctx.reply(
-			"OTP has been sent to your email. Please verify using /verify <otp>"
-		);
-	} catch (error: any) {
-		console.error("OTP Error: ", error);
-		await ctx.reply("Failed to send OTP. Please try again.");
-	}
-};
-
-export const handleVerify = async (ctx: CustomContext): Promise<void> => {
-	const message =
-		ctx.message && "text" in ctx.message ? ctx.message.text : "";
-	const args = message.split(" ");
-
-	if (args.length !== 2) {
-		await ctx.reply("Please use the format: /verify <otp>");
-		return;
-	}
-
-	const otp = args[1];
-	if (!isValidOtp(otp)) {
-		await ctx.reply("OTP should contain only numbers.");
+	if (!otp || !isValidOtp(otp)) {
+		await ctx.reply("Invalid OTP. Please enter only numbers:", {
+			reply_markup: { force_reply: true },
+		});
 		return;
 	}
 
 	const storedData = await getUserToken(ctx.from!.id);
-	console.log("Token from Redis(67): ", storedData);
 
 	if (!storedData) {
-		await ctx.reply("Please start the login process using /login <email>");
+		await ctx.reply(
+			"Session expired. Please start the login process again."
+		);
 		return;
 	}
 
 	const { email, sid } = JSON.parse(storedData);
 
 	try {
+		await ctx.reply("Verifying OTP...");
+
 		const response = await authService.authenticateWithOtp(email, otp, sid);
 		const data = response.data;
-		console.log("Auth services response(89): ", data);
+
 		if (isApiError(data)) {
 			await ctx.reply(formatApiError(data));
 			return;
@@ -147,45 +128,147 @@ export const handleVerify = async (ctx: CustomContext): Promise<void> => {
 
 		const authData = data as any;
 		await setUserToken(ctx.from!.id, authData.accessToken);
-		await setAuthToken(authData.accessToken);
-		console.log("Auth Data(88): ", authData);
+		setAuthToken(authData.accessToken);
+
 		await ctx.reply(
-			"Successfully authenticated! Use /profile to view your profile."
+			"🎉 Successfully authenticated!\n\nWhat would you like to do next?",
+			Markup.inlineKeyboard([
+				[Markup.button.callback("👤 View Profile", "view_profile")],
+				[Markup.button.callback("💳 View Wallets", "view_wallets")],
+				[Markup.button.callback("💰 Check Balances", "check_balance")],
+			])
 		);
+
+		const profileResponse = await authService.getUserProfile(
+			authData.accessToken
+		);
+		if (!isApiError(profileResponse.data)) {
+			const profile = profileResponse.data as UserProfile;
+
+			if (profile.organizationId) {
+				await notificationService.initializePusher(
+					authData.accessToken,
+					profile.organizationId,
+					ctx.telegram,
+					ctx.from!.id
+				);
+			}
+		}
+
+		ctx.session.state = "IDLE";
 	} catch (error) {
 		await ctx.reply("Invalid OTP. Please try again.");
 	}
 };
 
+export const handleVerifyStart = async (ctx: CustomContext): Promise<void> => {
+	const storedData = await getUserToken(ctx.from!.id);
+
+	if (!storedData) {
+		await ctx.reply(
+			"Please start the login process first:",
+			Markup.inlineKeyboard([
+				[Markup.button.callback("🔑 Login", "start_login")],
+			])
+		);
+		return;
+	}
+
+	try {
+		const { email } = JSON.parse(storedData);
+
+		ctx.session.state = "awaiting_otp";
+		await ctx.reply(`Please enter the OTP sent to ${email}:`, {
+			reply_markup: { force_reply: true },
+		});
+	} catch (error) {
+		await ctx.reply("Please start the login process again.");
+	}
+};
+
+export const handleLogin = async (ctx: CustomContext): Promise<void> => {
+	ctx.session.state = "awaiting_email";
+	await ctx.reply("Please enter your email to login:", {
+		reply_markup: { force_reply: true },
+	});
+};
+
+export const handleVerify = async (ctx: CustomContext): Promise<void> => {
+	const storedData = await getUserToken(ctx.from!.id);
+
+	if (!storedData) {
+		await ctx.reply(
+			"Please start the login process first:",
+			Markup.inlineKeyboard([
+				[Markup.button.callback("🔑 Login", "start_login")],
+			])
+		);
+		return;
+	}
+
+	try {
+		const { email } = JSON.parse(storedData);
+
+		ctx.session.state = "awaiting_otp";
+		await ctx.reply(`Please enter the OTP sent to ${email}:`, {
+			reply_markup: { force_reply: true },
+		});
+	} catch (error) {
+		await ctx.reply("Please start the login process again.");
+	}
+};
+
 export const handleProfile = async (ctx: CustomContext): Promise<void> => {
 	try {
+		await ctx.reply("Fetching your profile...");
+
 		const token = await getUserToken(ctx.from!.id);
 		if (!token) {
 			await ctx.reply(
-				"You are not logged in. Please use /login <email>."
+				"You are not logged in. Please log in first:",
+				Markup.inlineKeyboard([
+					[Markup.button.callback("🔑 Login", "start_login")],
+				])
 			);
 			return;
 		}
-		// console.log("Token stored(120): ", token)
 
 		const response = await authService.getUserProfile(token);
 		const data = response.data;
-		console.log("User profile response(116): ", data);
+
 		if (isApiError(data)) {
 			await ctx.reply(formatApiError(data));
 			return;
 		}
 
 		const profile = data as UserProfile;
-		console.log("Fetched profile(123) : ", profile);
+
 		await ctx.reply(
-			`Profile Information:\n\n` +
+			`👤 *Profile Information*\n\n` +
 				`Name: ${profile.firstName} ${profile.lastName}\n` +
 				`Email: ${profile.email}\n` +
 				`Role: ${profile.role}\n` +
 				`Status: ${profile.status}\n` +
 				`Type: ${profile.type}\n` +
-				`Wallet Address: ${profile.walletAddress || "Not set"}`
+				`Wallet Address: \`${profile.walletAddress || "Not set"}\``,
+			{
+				parse_mode: "Markdown",
+				reply_markup: Markup.inlineKeyboard([
+					[Markup.button.callback("💳 View Wallets", "view_wallets")],
+					[
+						Markup.button.callback(
+							"💰 Check Balances",
+							"check_balance"
+						),
+					],
+					[
+						Markup.button.callback(
+							"✅ Check KYC Status",
+							"check_kyc"
+						),
+					],
+				]).reply_markup,
+			}
 		);
 	} catch (error) {
 		await ctx.reply(
@@ -197,7 +280,7 @@ export const handleProfile = async (ctx: CustomContext): Promise<void> => {
 export const handleLogout = async (ctx: CustomContext): Promise<void> => {
 	console.log("Logging out...");
 	const token = await getUserToken(ctx.from!.id);
-	console.log("Token before loggin out:(151)", token);
+
 	if (!token) {
 		await ctx.reply("You are already logged out.");
 		return;
